@@ -10,27 +10,22 @@ It is simple, lightweight, and encrypts and multiplexes streams.
 ## 2. Notational Conventions
 
 ## 2.1. Pseudo Language
-
-Go like 
+This document uses the following Go-like notation for defining arithmetic procedures and data structures.
 
 ```
-:=
-+
--
-*
-/
-%
-<<
->>
-|
-&
-^
-!
-
-keyword {
-    type
-    struct
-    enum
+operator {
+    := // assignment
+    +  // addition
+    -  // subtraction
+    *  // multiplication
+    /  // division
+    %  // modulo operation
+    << // logical left shift
+    >> // logical right shift
+    |  // bitwise OR
+    &  // bitwise AND
+    ^  // bitwise XOR (exclusive OR)
+    !  // bitwise NOT
 }
 
 primitive-type {
@@ -42,6 +37,12 @@ primitive-type {
     int16  // 16-bit signed integer
     int32  // 32-bit signed integer
     int64  // 64-bit signed integer
+}
+
+keyword {
+    type
+    struct
+    enum
 }
 
 ```

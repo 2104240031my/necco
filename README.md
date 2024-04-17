@@ -1,7 +1,7 @@
 # necco
 
 ## Overview
-necco（natively encrypted channel control）は、暗号路を提供するためのトランスポートプロトコルです。
+necco（naturally encrypted channel control）は、暗号路を提供するためのトランスポートプロトコルです。
 
 ## Mission and Goals
 - 信頼性の高い通信を実現する
@@ -9,7 +9,7 @@ necco（natively encrypted channel control）は、暗号路を提供するた�
         - 暗号技術を適切に組み合わせて用いる
         - セキュリティバイデザイン、およびセキュアコーディングの達成
     - 輻輳回復アルゴリズムの実装（出来たら）
-
+- 上層プロトコルへの、ストリームの多重化の提供
 - 動作の軽量性
 
 ## Scope

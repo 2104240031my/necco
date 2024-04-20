@@ -1,4 +1,4 @@
-package sha3
+package crypto
 
 import (
 	"errors"

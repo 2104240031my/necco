@@ -10,11 +10,11 @@ It is simple, lightweight, and encrypts and multiplexes streams.
 ## 2. Notational Conventions
 
 ## 2.1. Pseudo Language
-This document uses the following Go-like notation for defining arithmetic procedures and data structures.
+This document uses the following Rust-like notation for defining arithmetic procedures and data structures.
 
 ```
 operator {
-    := // assignment
+    =  // assignment
     +  // addition
     -  // subtraction
     *  // multiplication
@@ -29,14 +29,14 @@ operator {
 }
 
 primitive-type {
-    uint8  //  8-bit unsigned integer
-    uint16 // 16-bit unsigned integer
-    uint32 // 32-bit unsigned integer
-    uint64 // 64-bit unsigned integer
-    int8   //  8-bit signed integer
-    int16  // 16-bit signed integer
-    int32  // 32-bit signed integer
-    int64  // 64-bit signed integer
+    u8  //  8-bit unsigned integer
+    u16 // 16-bit unsigned integer
+    u32 // 32-bit unsigned integer
+    u64 // 64-bit unsigned integer
+    i8  //  8-bit signed integer
+    i16 // 16-bit signed integer
+    i32 // 32-bit signed integer
+    i64 // 64-bit signed integer
 }
 
 keyword {
@@ -49,34 +49,7 @@ keyword {
 
 ## 2.2. Byte and Bit Endian
 In this document, octet sequences are represented in big endian (i.e., network byte order) format. Also, the 8 bits in one octet are expressed in little endian.
-
 An example of representing a 32-bit unsigned integer is shown below.
-
-```
-
-u32   := 0x0f1e2d3c;
-bytes := [4]uint8{ 0x0f, 0x1e, 0x2d, 0x3c };
-bits  := [32]bit{ 
-    0, 0, 0, 0, 1, 1, 1, 1, 
-    0, 0, 0, 1, 1, 1, 1, 0, 
-    0, 0, 1, 0, 1, 1, 0, 1, 
-    0, 0, 1, 1, 1, 1, 0, 0
-};
-
-MSByte                 LSByte
-+------+------+------+------+
-| 0x0f | 0x1e | 0x2d | 0x3c |
-+------+------+------+------+
-:      :
-:      :.........................
-:                               :
-MSBit                       LSBit
-+---+---+---+---+---+---+---+---+
-| 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 |
-+---+---+---+---+---+---+---+---+
-
-```
-
 
 ## 3. Version-Independent Properties
 The necco will have many versions in the future. Therefore, we define properties that are static and constant, independent of all versions.
@@ -86,13 +59,13 @@ Every necco version has a "VersionID" that uniquely identifies the version.
 
 
 ```
-type Version = uint64;
+type Version = u64;
 
-type VersionID = enum: uint64 {
-    Null     := 0x0000000000000000,
-    Reserved := 0xff00000000000000..0xffffffffffffffff
+type VersionID = enum: u64 {
+    Null     = 0x0000000000000000,
+    Reserved = 0xff00000000000000..0xffffffffffffffff
 };
 
 ```
 
-Version1 := 0x0000000000000001,
+Version1 = 0x0000000000000001,

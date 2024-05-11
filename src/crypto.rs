@@ -1,7 +1,8 @@
 pub mod aes;
 pub mod sha3;
-pub mod x25519;
 pub mod uint;
+pub mod curve25519;
+pub mod x25519;
 
 use std::error::Error;
 use std::fmt::Display;

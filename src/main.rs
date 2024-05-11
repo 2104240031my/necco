@@ -1,7 +1,8 @@
 mod crypto;
 use crypto::aes;
 use crypto::sha3;
-use crypto::uint::u256;
+use crypto::uint::Uint256;
+use crypto::curve25519::Uint25519;
 
 fn main() {
 
@@ -33,30 +34,38 @@ fn main() {
     sha3::Sha3::compute(sha3::Sha3Algorithm::Sha3_512, &msg[..], &mut md[..]);
     printlnbytes(&md[..64]);
 
-    let mut a: u256 = u256::zero();
-    let mut b: u256 = u256::zero();
-    let mut c: u256 = u256::zero();
-    let mut d: u256 = u256::zero();
-    
-    a.from_be_bytes([
+    let a: Uint25519 = Uint25519::new().with_be_bytes([
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff
-    ]);
+    ]).unwrap();
 
-    b.from_be_bytes([
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03
-    ]);
+    let b: Uint25519 = Uint25519::new().with_be_bytes([
+        0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00
+    ]).unwrap();
+    
+    let mut c: Uint25519 = Uint25519::new_as(0);
+    let mut d: Uint25519 = Uint25519::new_as(0);
+    let mut e: Uint25519 = Uint25519::new_as(0);
 
-    u256::add(&mut c, &a, &b);
-    u256::mul(&mut d, &a, &b);
+    Uint25519::gadd(&mut c, &a, &b);
+    Uint25519::gsub(&mut d, &a, &b);
+    Uint25519::gmul(&mut e, &a, &b);
 
     let mut out: [u8; 32] = [0; 32];
     
+    a.to_be_bytes(&mut out);
+    printlnbytes(&out);
+    b.to_be_bytes(&mut out);
+    printlnbytes(&out);
+
     c.to_be_bytes(&mut out);
     printlnbytes(&out);
 
     d.to_be_bytes(&mut out);
+    printlnbytes(&out);
+    
+    e.to_be_bytes(&mut out);
     printlnbytes(&out);
 
 }

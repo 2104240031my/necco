@@ -1,4 +1,5 @@
 use crate::crypto::CryptoError;
+use crate::crypto::cipher::BlockCipher;
 
 pub enum AesAlgorithm {
     Aes128,
@@ -59,17 +60,17 @@ const AES_128_KEY_LEN: usize = 16;
 const AES_192_KEY_LEN: usize = 24;
 const AES_256_KEY_LEN: usize = 32;
 
-const AES_128_NK: usize      = 4usize;
-const AES_192_NK: usize      = 6usize;
-const AES_256_NK: usize      = 8usize;
+const AES_128_NK: usize      = 4;
+const AES_192_NK: usize      = 6;
+const AES_256_NK: usize      = 8;
 
-const AES_128_NB: usize      = 4usize;
-const AES_192_NB: usize      = 4usize;
-const AES_256_NB: usize      = 4usize;
+const AES_128_NB: usize      = 4;
+const AES_192_NB: usize      = 4;
+const AES_256_NB: usize      = 4;
 
-const AES_128_NR: usize      = 10usize;
-const AES_192_NR: usize      = 12usize;
-const AES_256_NR: usize      = 14usize;
+const AES_128_NR: usize      = 10;
+const AES_192_NR: usize      = 12;
+const AES_256_NR: usize      = 14;
 
 fn double_on_gf(a: u64) -> u64 {
     let b: u64 = a & 0x8080808080808080;
@@ -170,13 +171,14 @@ impl Aes {
 
     }}
 
-    pub fn cipher(&self, block_in: &[u8], block_out: &[u8]) -> Option<CryptoError> { unsafe {
+}
 
-        if block_in.len() < 16 {
-            return Some(CryptoError::new("the length of $block_in is too short".to_string()));
-        } else if block_out.len() < 16 {
-            return Some(CryptoError::new("the length of $block_out is too short".to_string()));
-        }
+impl BlockCipher for Aes {
+
+    const BLOCK_SIZE: usize = 16;
+
+    // Cipher
+    fn encrypt_block(&self, block_in: &[u8], block_out: &mut [u8]) -> Option<CryptoError> { unsafe {
 
         let mut state: [u8; 16] = [0x00u8; 16];
         let s: *mut u64 = state.as_ptr() as *mut u64;
@@ -282,7 +284,8 @@ impl Aes {
 
     }}
 
-    pub fn inv_cipher(&self, block_in: &[u8], block_out: &[u8]) -> Option<CryptoError> { unsafe {
+    // InvCipher
+    fn decrypt_block(&self, block_in: &[u8], block_out: &mut [u8]) -> Option<CryptoError> { unsafe {
 
         if block_in.len() < 16 {
             return Some(CryptoError::new("the length of $block_in is too short".to_string()));

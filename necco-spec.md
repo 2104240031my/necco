@@ -53,7 +53,7 @@ keyword {
 ```
 
 ## 2.2. Byte and Bit Endian
-In this document, octet sequences are represented in big endian (i.e., network byte order) format. Also, the 8 bits in one octet are expressed in little endian.
+In this document, octet sequences are represented in big endian (i.e., network byte order) format. Also, the 8 bits in one octet are expressed in big endian.
 An example of representing a 32-bit unsigned integer is shown below.
 
 ## 3. Version-Independent Properties

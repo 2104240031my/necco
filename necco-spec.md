@@ -82,7 +82,6 @@ Every necco version has a "VersionID" that uniquely identifies the version.
 ```
 enum VersionID: vl64 {
     Null       = vl64::u8(0x00),
-    Version_1  = vl64::u8(0x01),
     Resrvd1Min = vl64::u64(0xff00000000000000),
     Resrvd1Max = vl64::u64(0xffffffffffffffff),
 };
@@ -100,16 +99,31 @@ All Mew follow byte boundaries.
 necco is a partially-stateless communication protocol.
 Specifically, each Mew has a counterpart, and one pair is independent from the other.
 
-## 3.5.2. Types of Mew
+
+## 4.1. Version 1
+
+
+## 4.2. Version ID
+
+```
+enum VersionID: vl64 {
+    Null       = vl64::u8(0x00),
+    Version_1  = vl64::u8(0x01),
+    Resrvd1Min = vl64::u64(0xff00000000000000),
+    Resrvd1Max = vl64::u64(0xffffffffffffffff),
+};
+```
+
+## 4.x. Types of Mew
 Mew has several types, and each type identified by MewType value.
 All Mews MUST have NewType type field in its first field.
 
 ```
 enum MewType: u8 {
-    Dial  = 0x00, // address validation
-    Hello = 0x01, // handshake (connecting)
-    Talk  = 0x02, // application data exchanging
-    Bye   = 0x03, // handshake (disconnecting)
+    Hello     = 0x00, // address validation
+    Handshake = 0x01, // handshake (connecting)
+    Talk      = 0x02, // application data exchanging
+    Bye       = 0x03, // handshake (disconnecting)
 };
 
 struct Mew {
@@ -119,75 +133,126 @@ struct Mew {
 };
 ```
 
-## 3.5.2.1. Dial Mew
+## 4.x.1. Hello Mew
 
 ```
-struct DialMew {
-    mew_type: MewType = MewType::Dial,
+struct HelloMew {
+    mew_type: MewType = MewType::Hello,
     pad:      [u8]
 };
 
-struct DialMewReply {
-    mew_type:      MewType = MewType::Dial,
+struct HelloMewReply {
+    mew_type:      MewType = MewType::Hello,
     dialing_token: [u8],
     version_list:  [VersionID]
 };
 ```
 
-## 3.5.2.2. Hello Mew
+## 4.x.2. Handshake Mew
 ```
-struct HelloMew {
-    mew_type:      MewType = MewType::Hello,
+struct HandshakeMew {
+    mew_type:      MewType = MewType::Handshake,
     src_chan_id:   [u8],
     dst_chan_id:   [u8],
     dialing_token: [u8],
     version:       VersionID,
-    aead_list:     [AeadAlgorithm],
-    hash_list:     [HashAlgorithm],
-    key_ex_list:   [KeyShareAlgorithm],
-    peer_au_list:  [PeerAuthAlgorithm]
+    pyld:          select { // other structures may also be defined in the future
+
+    },
 };
 
-struct HelloMewReply {
-    mew_type:    MewType = MewType::Hello,
+struct HandshakeMewReply {
+    mew_type:    MewType = MewType::Handshake,
     src_chan_id: [u8],
     dst_chan_id: [u8],
-    aead:        AeadAlgorithm,
-    hash:        HashAlgorithm,
-    key_ex:      KeyShareAlgorithm,
-    peer_au:     PeerAuthAlgorithm
+
+};
+
+struct HandshakeParametersSupported {
+    aead_list:    [AeadAlgorithm],
+    hash_list:    [HashAlgorithm],
+    key_ex_list:  [KeyShareAlgorithm],
+    peer_au_list: [PeerAuthAlgorithm]
+};
+
+struct HandshakeParametersSupported {
+    aead:    AeadAlgorithm,
+    hash:    HashAlgorithm,
+    key_ex:  KeyShareAlgorithm,
+    peer_au: PeerAuthAlgorithm
 };
 ```
 
-## 3.5.2.3. Talk Mew
+## 4.x.3. Talk Mew
 ```
 struct TalkMew {
     mew_type:    MewType = MewType::Talk,
     dst_chan_id: [u8],
-    call_id:     vl64
+    mew_seq:     vl64
 };
 
 struct TalkMewReply { // works like ACK
     mew_type:    MewType = MewType::Talk,
     dst_chan_id: [u8],
-    call_id:     vl64
+    mew_seq:     vl64
 };
 ```
 
-## 3.5.2.4. Bye Mew
+## 4.x.4. Bye Mew
 ```
 struct ByeMew {
     mew_type: MewType = MewType::Bye,
     chan_id:  [u8],
-    call_id:  vl64
+    mew_seq:  vl64
 };
 
 struct ByeMewReply {
     mew_type: MewType = MewType::Bye,
     chan_id:  [u8],
-    call_id:  vl64
+    mew_seq:  vl64
 };
 ```
+
+## 4.s. Handshake
+```
+
+             ^
+             |  Hello
+             |  ------------------------>
+             |
+Hello Phase  |                          Hello {
+             |                              dialing token
+             |                          }
+             |                          <------------------------
+             v
+             ^
+             |  Handshake {
+             |      source channel id
+             |      destination channel id
+             |      dialing token
+             |      supported cipher algorithms 
+             |  }
+  Handshake  |  ------------------------>
+      Phase  |
+             |                          Handshake {
+             |                              source channel id
+             |                              destination channel id
+             |                              selected cipher algorithms
+             |                          }
+             |                          <------------------------
+             v
+             ^
+             |  Talk {
+             |      destination channel id
+ Talk Phase  |  
+           
+
+
+
+
+```
+
+## 4.s. Exchange Channel ID
 
 
 

@@ -31,17 +31,21 @@ operator {
 }
 
 scalar-type {
-    u8     //  8-bit unsigned integer
-    u16    // 16-bit unsigned integer
-    u32    // 32-bit unsigned integer
-    u64    // 64-bit unsigned integer
-    i8     //  8-bit signed integer
-    i16    // 16-bit signed integer
-    i32    // 32-bit signed integer
-    i64    // 64-bit signed integer
-    vl64   // 64-bit unsigned integer that encode to QUIC variable-length integer in transmission
+    any
+    u8     //   8-bit unsigned integer
+    u16    //  16-bit unsigned integer
+    u32    //  32-bit unsigned integer
+    u64    //  64-bit unsigned integer
+    u128   // 128-bit unsigned integer
+    i8     //   8-bit signed integer
+    i16    //  16-bit signed integer
+    i32    //  32-bit signed integer
+    i64    //  64-bit signed integer
+    i128   // 128-bit signed integer
     [T; N] // array of type T with N elements
-    [T]    // array of type T with opaque length; the length is encoded to vl64 type and prepended to the array
+    (L)[T] // array of type T with variable number of elements; 
+           // the number of elements is expressed as value of L type (must be integer) 
+           // and prepended to the array
 }
 
 keyword {
@@ -80,10 +84,10 @@ In Mew, all versions share one definition space.
 Every necco version has a "VersionID" that uniquely identifies the version.
 
 ```
-enum VersionID: vl64 {
-    Null       = vl64::u8(0x00),
-    Resrvd1Min = vl64::u64(0xff00000000000000),
-    Resrvd1Max = vl64::u64(0xffffffffffffffff),
+enum VersionID: u64 {
+    Null       = 0x0000000000000000,
+    Resrvd0Min = 0xff00000000000000,
+    Resrvd0Max = 0xffffffffffffffff
 };
 ```
 
@@ -106,11 +110,8 @@ Specifically, each Mew has a counterpart, and one pair is independent from the o
 ## 4.2. Version ID
 
 ```
-enum VersionID: vl64 {
-    Null       = vl64::u8(0x00),
-    Version_1  = vl64::u8(0x01),
-    Resrvd1Min = vl64::u64(0xff00000000000000),
-    Resrvd1Max = vl64::u64(0xffffffffffffffff),
+enum VersionID: u64 {
+    Version_1  = 0x0000000000000001
 };
 ```
 
@@ -123,7 +124,7 @@ enum MewType: u8 {
     Hello     = 0x00, // address validation
     Handshake = 0x01, // handshake (connecting)
     Talk      = 0x02, // application data exchanging
-    Bye       = 0x03, // handshake (disconnecting)
+    Bye       = 0x03  // handshake (disconnecting)
 };
 
 struct Mew {
@@ -138,44 +139,43 @@ struct Mew {
 ```
 struct HelloMew {
     mew_type: MewType = MewType::Hello,
-    pad:      [u8]
-};
-
-struct HelloMewReply {
-    mew_type:      MewType = MewType::Hello,
-    dialing_token: [u8],
-    version_list:  [VersionID]
+    dst_chan_id: (u8)[u8],
+    src_chan_id: (u8)[u8],
+    pyld:     match handshake.role {
+        HandshakeRole::Proposer  => {
+            pad: (u64)[u8]
+        },
+        HandshakeRole::Responder => {
+            known_chan_tkn: (u8)[u8],
+            ver_list:    (u64)[VersionID]
+            pad:         (u64)[u8]
+        }
+    }
 };
 ```
 
 ## 4.x.2. Handshake Mew
 ```
 struct HandshakeMew {
-    mew_type:      MewType = MewType::Handshake,
-    src_chan_id:   [u8],
-    dst_chan_id:   [u8],
-    dialing_token: [u8],
-    version:       VersionID,
-    pyld:          select { // other structures may also be defined in the future
-
-    },
-};
-
-struct HandshakeMewReply {
-    mew_type:    MewType = MewType::Handshake,
-    src_chan_id: [u8],
-    dst_chan_id: [u8],
-
+    mew_type:       MewType = MewType::Handshake,
+    dst_chan_id:    (u8)[u8],
+    src_chan_id:    (u8)[u8],
+    known_chan_tkn: (u8)[u8],
+    ver:            VersionID,
+    crypto_params: match handshake.role { // other structures may also be defined in the future
+        HandshakeRole::Proposer  => HandshakeParametersSupported,
+        HandshakeRole::Responder => HandshakeParametersSelected
+    }
 };
 
 struct HandshakeParametersSupported {
-    aead_list:    [AeadAlgorithm],
-    hash_list:    [HashAlgorithm],
-    key_ex_list:  [KeyShareAlgorithm],
-    peer_au_list: [PeerAuthAlgorithm]
+    aead_list:    (u8)[AeadAlgorithm],
+    hash_list:    (u8)[HashAlgorithm],
+    key_ex_list:  (u8)[KeyShareAlgorithm],
+    peer_au_list: (u8)[PeerAuthAlgorithm]
 };
 
-struct HandshakeParametersSupported {
+struct HandshakeParametersSelected {
     aead:    AeadAlgorithm,
     hash:    HashAlgorithm,
     key_ex:  KeyShareAlgorithm,
@@ -187,29 +187,18 @@ struct HandshakeParametersSupported {
 ```
 struct TalkMew {
     mew_type:    MewType = MewType::Talk,
-    dst_chan_id: [u8],
-    mew_seq:     vl64
-};
-
-struct TalkMewReply { // works like ACK
-    mew_type:    MewType = MewType::Talk,
-    dst_chan_id: [u8],
-    mew_seq:     vl64
+    dst_chan_id: (u8)[u8],
+    mew_num:     u64,
+    pyld:        any
 };
 ```
 
 ## 4.x.4. Bye Mew
 ```
 struct ByeMew {
-    mew_type: MewType = MewType::Bye,
-    chan_id:  [u8],
-    mew_seq:  vl64
-};
-
-struct ByeMewReply {
-    mew_type: MewType = MewType::Bye,
-    chan_id:  [u8],
-    mew_seq:  vl64
+    mew_type:    MewType = MewType::Bye,
+    dst_chan_id: (u8)[u8],
+    mew_num:     u64
 };
 ```
 
@@ -221,30 +210,30 @@ struct ByeMewReply {
              |  ------------------------>
              |
 Hello Phase  |                          Hello {
-             |                              dialing token
+             |                              known channel token (issuing)
              |                          }
              |                          <------------------------
              v
              ^
              |  Handshake {
+             |      destination channel id (unknown yet, so set random value)
              |      source channel id
-             |      destination channel id
-             |      dialing token
-             |      supported cipher algorithms 
+             |      known channel token (submitting)
+             |      supported crypto algorithms 
              |  }
   Handshake  |  ------------------------>
       Phase  |
              |                          Handshake {
-             |                              source channel id
              |                              destination channel id
-             |                              selected cipher algorithms
+             |                              source channel id
+             |                              selected crypto algorithms
              |                          }
              |                          <------------------------
              v
              ^
              |  Talk {
              |      destination channel id
- Talk Phase  |  
+ Talk Phase  |  }
            
 
 

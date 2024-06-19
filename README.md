@@ -1,7 +1,7 @@
-# necco: Nimble and Elastic Channel Control
+# necco: Nimble and Elastic Connection Control
 
 ## 概要
-necco（Nimble and Elastic Channel Control）は、軽量な暗号路を提供するためのトランスポートプロトコルです。
+necco（Nimble and Elastic Connection Control、ﾈｯｺ）は、軽量な暗号路を提供するためのトランスポートプロトコルです。
 
 ## 設計指針
 - 軽量（lightweight）
@@ -19,4 +19,4 @@ necco（Nimble and Elastic Channel Control）は、軽量な暗号路を提供�
 ## 命名由来
 - 猫のように、小さいサイズの実装で俊敏なパフォーマンス。そして伸縮自在
 - 猫は液体 -> 水の流れ -> 小川 -> ストリーム -> ストリーム指向・コネクション指向のプロトコル
-- かわいいので
+- かわいい、親しみやすい

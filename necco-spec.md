@@ -1,10 +1,10 @@
-# necco: Nimble and Elastic Channel Control
+# necco: Nimble and Elastic Connection Control
 
 ## Abstract
 This document defines properties common to all versions of the necco protocol, as well as specifications for version 1.
 
 ## 1. Overview
-"necco" (Nimble and Elastic Channel Control) is a simple, lightweight, secure, elastic, and evolvable communication protocol that encrypts transmission channels within or above the transport layer.
+"necco" (Nimble and Elastic Connection Control) is a simple, lightweight, secure, elastic, and evolvable communication protocol that encrypts transmission connections within or above the transport layer.
 
 ## 2. Notational Conventions
 
@@ -78,31 +78,44 @@ The necco will have many versions in the future. Therefore, we define properties
 
 
 ## 3.2. Definition Space
-In Mew, all versions share one definition space.
+In necco, all versions share one definition space.
+
+
+## 3.x. Necochan
+In necco, the endpoints that communicate are called "Nekochan".
+Nekochan are classified into "Local Nekochan" and "Remote Nekochan" (also called "Peer Nekochan" or "co-Nekochan") depending on whether they are on your side or the other side.
+
+## 3.4. Connection
+"Connection" is the shared state between co-Nekochan in necco.
+
+## 3.5. Mew
+"Mew" is the basic transmission unit of necco, similar to a datagram, packet, segment, etc.
+All Mews follow byte boundaries.
 
 ## 3.5. Version Identifier
 Every necco version has a "VersionID" that uniquely identifies the version.
 
 ```
-enum VersionID: u64 {
-    Null       = 0x0000000000000000,
-    Resrvd0Min = 0xff00000000000000,
-    Resrvd0Max = 0xffffffffffffffff
+enum VersionID: u16 {
+    Null       = 0x0000,
+    Resrvd0Min = 0xf000,
+    Resrvd0Max = 0xffff
 };
 ```
 
-## 3.4. Channel
-"Channel" is the connection in necco (often abbreviated as "chan" or "necco chan").
 
 
-## 3.5. Mew
-"Mew" is the basic transmission unit of necco, similar to a datagram, packet, segment, etc.
-All Mew follow byte boundaries.
 
-## 3.5.1. Call and Response
-necco is a partially-stateless communication protocol.
-Specifically, each Mew has a counterpart, and one pair is independent from the other.
+## 3.6. Handshake
 
+
+## 3.6.1. Role in Handshake
+In necco, there is no clear division of roles such as client or server for each endpoint, but the roles only occur during handshake.
+The Nekochan that initiates the handshake is called the "Proposer", and the Nekochan that responds to it is called the "Responder".
+
+
+## Vocabulary
+The ability to flexibly extend Mew forms through vocabulary is at the core of necco's elasticity.
 
 ## 4.1. Version 1
 
@@ -110,8 +123,8 @@ Specifically, each Mew has a counterpart, and one pair is independent from the o
 ## 4.2. Version ID
 
 ```
-enum VersionID: u64 {
-    Version_1  = 0x0000000000000001
+enum VersionID: u16 {
+    Version1  = 0x0001
 };
 ```
 
@@ -124,31 +137,38 @@ enum MewType: u8 {
     Hello     = 0x00, // address validation
     Handshake = 0x01, // handshake (connecting)
     Talk      = 0x02, // application data exchanging
-    Bye       = 0x03  // handshake (disconnecting)
+    Bye       = 0x03, // handshake (disconnecting)
+};
+
+enum Vocabulary: u16 { // Vocabulary is elasit
+    ConciseV0 = 0x0000,
+    RichV0    = 0x0001,
 };
 
 struct Mew {
     mew_type: MewType,
+    vocab:    Vocabulary
 
     // followed by type-specific fields ...
 };
+
 ```
 
 ## 4.x.1. Hello Mew
 
 ```
 struct HelloMew {
-    mew_type: MewType = MewType::Hello,
-    dst_chan_id: (u8)[u8],
-    src_chan_id: (u8)[u8],
-    pyld:     match handshake.role {
-        HandshakeRole::Proposer  => {
-            pad: (u64)[u8]
+    mew_type:    MewType = MewType::Hello,
+    dst_conn_id: (u8)[u8],
+    src_conn_id: (u8)[u8],
+    content:     match neco.handshake_role {
+        HandshakeRole::Proposer  => {     
+            ver_list: (u16)[VersionID],
+            pad:      (u64)[u8]
         },
         HandshakeRole::Responder => {
-            known_chan_tkn: (u8)[u8],
-            ver_list:    (u64)[VersionID]
-            pad:         (u64)[u8]
+            ver        : VersionID
+            helo_cookie: (u8)[u8]
         }
     }
 };
@@ -157,22 +177,41 @@ struct HelloMew {
 ## 4.x.2. Handshake Mew
 ```
 struct HandshakeMew {
-    mew_type:       MewType = MewType::Handshake,
-    dst_chan_id:    (u8)[u8],
-    src_chan_id:    (u8)[u8],
-    known_chan_tkn: (u8)[u8],
-    ver:            VersionID,
-    crypto_params: match handshake.role { // other structures may also be defined in the future
-        HandshakeRole::Proposer  => HandshakeParametersSupported,
-        HandshakeRole::Responder => HandshakeParametersSelected
-    }
+    mew_type:    MewType = MewType::Handshake,
+    ver:         VersionID,
+    dst_conn_id: (u8)[u8],
+    src_conn_id: (u8)[u8],
+    vocab:       Vocabulary,
+    content: match self.vocab {
+        Vocabulary::ConciseV0 => match neco.handshake_role {
+            HandshakeRole::Proposer  => {
+                helo_cookie: (u8)[u8],
+                random: 
+                aead_list:    (u8)[AeadAlgorithm],
+                hash_list:    (u8)[HashAlgorithm],
+                key_ex_list:  (u8)[KeyShareAlgorithm],
+                peer_au_list: (u8)[PeerAuthAlgorithm]
+                key_ex: match
+                peer_au:
+            },
+            HandshakeRole::Responder => {
+                crypto_params: HandshakeParametersSelected
+                random:
+                aead:           AeadAlgorithm,
+                hash:           HashAlgorithm,
+                key_ex:         KeyShareAlgorithm,
+                peer_au:        PeerAuthAlgorithm
+                ke:
+                au:
+            }
+        },
+
+        // other structures may also be defined in the future
+    };
 };
 
 struct HandshakeParametersSupported {
-    aead_list:    (u8)[AeadAlgorithm],
-    hash_list:    (u8)[HashAlgorithm],
-    key_ex_list:  (u8)[KeyShareAlgorithm],
-    peer_au_list: (u8)[PeerAuthAlgorithm]
+
 };
 
 struct HandshakeParametersSelected {
@@ -187,7 +226,7 @@ struct HandshakeParametersSelected {
 ```
 struct TalkMew {
     mew_type:    MewType = MewType::Talk,
-    dst_chan_id: (u8)[u8],
+    dst_conn_id: (u8)[u8],
     mew_num:     u64,
     pyld:        any
 };
@@ -197,7 +236,7 @@ struct TalkMew {
 ```
 struct ByeMew {
     mew_type:    MewType = MewType::Bye,
-    dst_chan_id: (u8)[u8],
+    dst_conn_id: (u8)[u8],
     mew_num:     u64
 };
 ```
@@ -210,29 +249,29 @@ struct ByeMew {
              |  ------------------------>
              |
 Hello Phase  |                          Hello {
-             |                              known channel token (issuing)
+             |                              hello cookie (issuing)
              |                          }
              |                          <------------------------
              v
              ^
              |  Handshake {
-             |      destination channel id (unknown yet, so set random value)
-             |      source channel id
-             |      known channel token (submitting)
+             |      destination connection id (unknown yet, so set random value)
+             |      source connection id
+             |      hello cookie (submitting)
              |      supported crypto algorithms 
              |  }
   Handshake  |  ------------------------>
       Phase  |
              |                          Handshake {
-             |                              destination channel id
-             |                              source channel id
+             |                              destination Connection id
+             |                              source Connection id
              |                              selected crypto algorithms
              |                          }
              |                          <------------------------
              v
              ^
              |  Talk {
-             |      destination channel id
+             |      destination Connection id
  Talk Phase  |  }
            
 
@@ -241,7 +280,7 @@ Hello Phase  |                          Hello {
 
 ```
 
-## 4.s. Exchange Channel ID
+## 4.s. Exchange Connection ID
 
 
 

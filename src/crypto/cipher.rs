@@ -14,17 +14,20 @@ impl BlockCipherOperation {
     pub fn ecb_encrypt(ciph: &impl BlockCipher, msg_in: &[u8], msg_out: &mut [u8]) -> Option<CryptoError> {
 
         if msg_in.len() > msg_out.len() {
-            return Some(CryptoError::new("".to_string()))
+            return Some(CryptoError::new(""))
         }
         
         if msg_in.len() % <Aes as BlockCipher>::BLOCK_SIZE != 0 {
-            return Some(CryptoError::new("".to_string()));
+            return Some(CryptoError::new(""));
         }
 
         let mut i: usize = 0;
 
         while i < msg_in.len() {
-            ciph.encrypt_block(&msg_in[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)], &mut msg_out[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)])?;
+            ciph.encrypt_block(
+                &msg_in[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)], 
+                &mut msg_out[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)]
+            )?;
             i = i + <Aes as BlockCipher>::BLOCK_SIZE;
         }
 
@@ -35,17 +38,20 @@ impl BlockCipherOperation {
     pub fn ecb_decrypt(ciph: &impl BlockCipher, msg_in: &[u8], msg_out: &mut [u8]) -> Option<CryptoError> {
 
         if msg_in.len() > msg_out.len() {
-            return Some(CryptoError::new("".to_string()))
+            return Some(CryptoError::new(""))
         }
         
         if msg_in.len() % <Aes as BlockCipher>::BLOCK_SIZE != 0 {
-            return Some(CryptoError::new("".to_string()));
+            return Some(CryptoError::new(""));
         }
 
         let mut i: usize = 0;
 
         while i < msg_in.len() {
-            ciph.decrypt_block(&msg_in[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)], &mut msg_out[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)])?;
+            ciph.decrypt_block(
+                &msg_in[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)], 
+                &mut msg_out[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)]
+            )?;
             i = i + <Aes as BlockCipher>::BLOCK_SIZE;
         }
 
@@ -53,14 +59,15 @@ impl BlockCipherOperation {
 
     }
 
-    pub fn ctr(ciph: &impl BlockCipher, ctr_blk: &mut [u8], ctr_size: usize, msg_in: &[u8], msg_out: &mut [u8]) -> Option<CryptoError> {
+    pub fn ctr(ciph: &impl BlockCipher, ctr_blk: &mut [u8], ctr_size: usize, msg_in: &[u8], 
+        msg_out: &mut [u8]) -> Option<CryptoError> {
 
         if msg_in.len() > msg_out.len() {
-            return Some(CryptoError::new("".to_string()));
+            return Some(CryptoError::new(""));
         }
 
         if ctr_blk.len() < <Aes as BlockCipher>::BLOCK_SIZE {
-            return Some(CryptoError::new("".to_string()));
+            return Some(CryptoError::new(""));
         }
 
         let mut c: [u8; <Aes as BlockCipher>::BLOCK_SIZE] = [0x00; <Aes as BlockCipher>::BLOCK_SIZE];

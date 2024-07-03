@@ -1,16 +1,12 @@
+pub mod cipher;
 pub mod aes;
-pub mod sha3;
-pub mod uint;
-pub mod curve25519;
-pub mod x25519;
 
 use std::error::Error;
 use std::fmt::Display;
 
-
 #[derive(Debug)]
 pub struct CryptoError {
-    err_msg: String
+    err_msg: &'static str
 }
 
 impl Error for CryptoError {}
@@ -22,11 +18,7 @@ impl Display for CryptoError {
 }
 
 impl CryptoError {
-
-    pub fn new(err_msg: String) -> Self {
-        return CryptoError{
-            err_msg: err_msg
-        };
+    pub fn new(err_msg: &'static str) -> Self {
+        return Self{ err_msg: err_msg };
     }
-
 }

@@ -616,17 +616,11 @@ unsafe fn aes_key_expansion(key: *const u8, expanded_key: *mut u8, n: usize) {
 
     let nk: usize = n - 6;
 
-    let mut i: usize = 0;
-    loop {
+    for i in 0..nk {
         *(expanded_key as *mut u32).add(i) = *(key as *const u32).add(i);
-        i = i + 1;
-        if !(i < nk) {
-            break;
-        }
     }
 
-    let n: usize = (n + 1) << 2;
-    loop {
+    for i in nk..((n + 1) << 2) {
 
         let wt: u32 = *(expanded_key as *mut u32).add(i - 1);
         let wt_u8: *mut u8 = (&wt as *const u32) as *mut u8;
@@ -653,11 +647,6 @@ unsafe fn aes_key_expansion(key: *const u8, expanded_key: *mut u8, n: usize) {
         }
 
         *(expanded_key as *mut u32).add(i) = *(expanded_key as *mut u32).add(i - nk) ^ wt;
-        i = i + 1;
-
-        if !(i < n) {
-            break;
-        }
 
     }
 
@@ -669,8 +658,7 @@ unsafe fn aes_expanded_key_inversion(expanded_key: *const u8, inv_expanded_key: 
     *(inv_expanded_key as *mut u64).add(0) = *(expanded_key as *const u64).add(0);
     *(inv_expanded_key as *mut u64).add(1) = *(expanded_key as *const u64).add(1);
 
-    let mut i: usize = 1;
-    loop {
+    for i in 1..n {
 
         // InvMixColumns
 
@@ -781,12 +769,6 @@ unsafe fn aes_expanded_key_inversion(expanded_key: *const u8, inv_expanded_key: 
             *((&x9 as *const u64) as *const u8).add(6) ^
             *((&xe as *const u64) as *const u8).add(7);
 
-        i = i + 1;
-
-        if i >= n {
-            break;
-        }
-
     }
 
     let rk: usize = n << 1;
@@ -811,8 +793,7 @@ unsafe fn aes_cipher(expanded_key: *const u8, block_in: *const u8, block_out: *m
     *st32.add(2) = *(block_in as *const u32).add(2) ^ *(expanded_key as *const u32).add(2);
     *st32.add(3) = *(block_in as *const u32).add(3) ^ *(expanded_key as *const u32).add(3);
 
-    let mut i: usize = 1;
-    loop {
+    for i in 1..n {
 
         // SubBytes o ShiftRows o MixColumns
         let w0: u32 =
@@ -834,12 +815,6 @@ unsafe fn aes_cipher(expanded_key: *const u8, block_in: *const u8, block_out: *m
         *st32.add(1) = w1 ^ *(expanded_key as *const u32).add(rk + 1);
         *st32.add(2) = w2 ^ *(expanded_key as *const u32).add(rk + 2);
         *st32.add(3) = w3 ^ *(expanded_key as *const u32).add(rk + 3);
-
-        i = i + 1;
-
-        if i >= n {
-            break;
-        }
 
     }
 
@@ -904,8 +879,7 @@ unsafe fn aes_eq_inv_cipher(expanded_key: *const u8, block_in: *const u8, block_
     *st32.add(2) = *(block_in as *const u32).add(2) ^ *(expanded_key as *const u32).add(rk + 2);
     *st32.add(3) = *(block_in as *const u32).add(3) ^ *(expanded_key as *const u32).add(rk + 3);
 
-    let mut i: usize = n - 1;
-    loop {
+    for i in (1..n).rev() {
 
         // InvShiftRows o InvSubBytes o InvMixColumns
         let w0: u32 =
@@ -927,12 +901,6 @@ unsafe fn aes_eq_inv_cipher(expanded_key: *const u8, block_in: *const u8, block_
         *st32.add(1) = w1 ^ *(expanded_key as *const u32).add(rk + 1);
         *st32.add(2) = w2 ^ *(expanded_key as *const u32).add(rk + 2);
         *st32.add(3) = w3 ^ *(expanded_key as *const u32).add(rk + 3);
-
-        i = i - 1;
-
-        if i < 1 {
-            break;
-        }
 
     }
 
@@ -982,12 +950,26 @@ impl BlockCipher for Aes {
 
     const BLOCK_SIZE: usize = 16;
 
-    unsafe fn encrypt_unchecked(&self, block_in: *const u8, block_out: *mut u8) {
-        aes_cipher(self.w.as_ptr() as *const u8, block_in, block_out, self.n);
+    fn encrypt_unchecked(&self, block_in: &[u8], block_out: &mut [u8]) {
+        unsafe {
+            aes_cipher(
+                self.w.as_ptr() as *const u8,
+                block_in.as_ptr() as *const u8,
+                block_out.as_ptr() as *mut u8,
+                self.n
+            );
+        }
     }
 
-    unsafe fn decrypt_unchecked(&self, block_in: *const u8, block_out: *mut u8) {
-        aes_eq_inv_cipher(self.dw.as_ptr() as *const u8, block_in, block_out, self.n);
+    fn decrypt_unchecked(&self, block_in: &[u8], block_out: &mut [u8]) {
+        unsafe {
+            aes_eq_inv_cipher(
+                self.dw.as_ptr() as *const u8,
+                block_in.as_ptr() as *const u8,
+                block_out.as_ptr() as *mut u8,
+                self.n
+            );
+        }
     }
 
     fn encrypt(&self, block_in: &[u8], block_out: &mut [u8]) -> Option<CryptoError> {
@@ -998,12 +980,7 @@ impl BlockCipher for Aes {
             return Some(CryptoError::new("the length of $block_out is too short"));
         }
 
-        unsafe {
-            self.encrypt_unchecked(
-                block_in.as_ptr() as *const u8,
-                block_out.as_ptr() as *mut u8
-            );
-        }
+        self.encrypt_unchecked(block_in, block_out);
 
         return None;
 
@@ -1017,12 +994,7 @@ impl BlockCipher for Aes {
             return Some(CryptoError::new("the length of $block_out is too short"));
         }
 
-        unsafe {
-            self.decrypt_unchecked(
-                block_in.as_ptr() as *const u8,
-                block_out.as_ptr() as *mut u8
-            );
-        }
+        self.decrypt_unchecked(block_in, block_out);
 
         return None;
 

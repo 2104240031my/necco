@@ -1,33 +1,40 @@
-use std::ptr;
+#[allow(unused)]
+
 use crate::crypto::CryptoError;
 use crate::crypto::aes::Aes;
 
 pub trait BlockCipher {
     const BLOCK_SIZE: usize;
-    fn encrypt_block(&self, block_in: &[u8], block_out: &mut [u8]) -> Option<CryptoError>;
-    fn decrypt_block(&self, block_in: &[u8], block_out: &mut [u8]) -> Option<CryptoError>;
+    unsafe fn encrypt_unchecked(&self, block_in: *const u8, block_out: *mut u8);
+    unsafe fn decrypt_unchecked(&self, block_in: *const u8, block_out: *mut u8);
+    fn encrypt(&self, block_in: &[u8], block_out: &mut [u8]) -> Option<CryptoError>;
+    fn decrypt(&self, block_in: &[u8], block_out: &mut [u8]) -> Option<CryptoError>;
 }
 
 pub struct BlockCipherOperation {}
 impl BlockCipherOperation {
 
-    pub fn ecb_encrypt(ciph: &impl BlockCipher, msg_in: &[u8], msg_out: &mut [u8]) -> Option<CryptoError> {
+    pub fn ecb_encrypt(cipher: &impl BlockCipher, bytes_in: &[u8], bytes_out: &mut [u8]) -> Option<CryptoError> {
 
-        if msg_in.len() > msg_out.len() {
+        let len: usize = bytes_in.len();
+
+        if len > bytes_out.len() {
             return Some(CryptoError::new(""))
         }
         
-        if msg_in.len() % <Aes as BlockCipher>::BLOCK_SIZE != 0 {
+        if len % <Aes as BlockCipher>::BLOCK_SIZE != 0 {
             return Some(CryptoError::new(""));
         }
 
         let mut i: usize = 0;
 
-        while i < msg_in.len() {
-            ciph.encrypt_block(
-                &msg_in[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)], 
-                &mut msg_out[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)]
-            )?;
+        while i < len {
+            unsafe {
+                cipher.encrypt_unchecked(
+                    bytes_in[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)].as_ptr() as *const u8,
+                    bytes_out[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)].as_ptr() as *mut u8
+                );
+            }
             i = i + <Aes as BlockCipher>::BLOCK_SIZE;
         }
 
@@ -35,23 +42,27 @@ impl BlockCipherOperation {
 
     }
 
-    pub fn ecb_decrypt(ciph: &impl BlockCipher, msg_in: &[u8], msg_out: &mut [u8]) -> Option<CryptoError> {
+    pub fn ecb_decrypt(cipher: &impl BlockCipher, bytes_in: &[u8], bytes_out: &mut [u8]) -> Option<CryptoError> {
 
-        if msg_in.len() > msg_out.len() {
+        let len: usize = bytes_in.len();
+
+        if len > bytes_out.len() {
             return Some(CryptoError::new(""))
         }
         
-        if msg_in.len() % <Aes as BlockCipher>::BLOCK_SIZE != 0 {
+        if len % <Aes as BlockCipher>::BLOCK_SIZE != 0 {
             return Some(CryptoError::new(""));
         }
 
         let mut i: usize = 0;
 
-        while i < msg_in.len() {
-            ciph.decrypt_block(
-                &msg_in[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)], 
-                &mut msg_out[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)]
-            )?;
+        while i < len {
+            unsafe {
+                cipher.decrypt_unchecked(
+                    bytes_in[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)].as_ptr() as *const u8,
+                    bytes_out[i..(i + <Aes as BlockCipher>::BLOCK_SIZE)].as_ptr() as *mut u8
+                );
+            }
             i = i + <Aes as BlockCipher>::BLOCK_SIZE;
         }
 
@@ -59,10 +70,10 @@ impl BlockCipherOperation {
 
     }
 
-    pub fn ctr(ciph: &impl BlockCipher, ctr_blk: &mut [u8], ctr_size: usize, msg_in: &[u8], 
-        msg_out: &mut [u8]) -> Option<CryptoError> {
+    pub fn ctr(ciph: &impl BlockCipher, ctr_blk: &mut [u8], ctr_size: usize, bytes_in: &[u8], 
+        bytes_out: &mut [u8]) -> Option<CryptoError> {
 
-        if msg_in.len() > msg_out.len() {
+        if bytes_in.len() > bytes_out.len() {
             return Some(CryptoError::new(""));
         }
 
@@ -72,15 +83,15 @@ impl BlockCipherOperation {
 
         let mut c: [u8; <Aes as BlockCipher>::BLOCK_SIZE] = [0x00; <Aes as BlockCipher>::BLOCK_SIZE];
         let mut i: usize = 0;
-        let n: usize = (msg_in.len() % <Aes as BlockCipher>::BLOCK_SIZE) * <Aes as BlockCipher>::BLOCK_SIZE;
+        let n: usize = (bytes_in.len() % <Aes as BlockCipher>::BLOCK_SIZE) * <Aes as BlockCipher>::BLOCK_SIZE;
 
         while i < n {
-            ciph.encrypt_block(&ctr_blk[..], &mut c[..])?;
+            ciph.encrypt(&ctr_blk[..], &mut c[..])?;
             unsafe { 
                 Self::xor_block(
-                    (&msg_in[i..] ).as_ptr() as *const u8, 
+                    (&bytes_in[i..] ).as_ptr() as *const u8, 
                     (&c[..]       ).as_ptr() as *const u8,
-                    (&msg_out[i..]).as_ptr() as *mut u8,
+                    (&bytes_out[i..]).as_ptr() as *mut u8,
                     <Aes as BlockCipher>::BLOCK_SIZE
                 )
             };
@@ -89,9 +100,9 @@ impl BlockCipherOperation {
         }
         
         if i != n {
-            ciph.encrypt_block(&ctr_blk[..], &mut c[..])?;
-            for j in 0..(n - msg_in.len()) {
-                msg_out[i + j] = msg_in[i + j] ^ c[j];
+            ciph.encrypt(&ctr_blk[..], &mut c[..])?;
+            for j in 0..(n - bytes_in.len()) {
+                bytes_out[i + j] = bytes_in[i + j] ^ c[j];
             }
             Self::inc_counter_block_by_one(ctr_blk, ctr_size, <Aes as BlockCipher>::BLOCK_SIZE);
         }

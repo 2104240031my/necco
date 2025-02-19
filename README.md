@@ -1,22 +1,2 @@
-# necco: Nimble and Elastic Connection Control
-
-## 概要
-necco（Nimble and Elastic Connection Control、ﾈｯｺ）は、軽量な暗号路を提供するためのトランスポートプロトコルです。
-
-## 設計指針
-- 軽量（lightweight）
-    - 極限までヘッダサイズを小さくする（データサイズの軽量性）
-    - 極限までシンプルに（動作の軽量性）
-- 安全（secure）
-    - プロトコル設計の安全性
-    - 暗号学的安全性
-    - 実装面での安全性
-- 伸縮自在（elastic）
-    - 必要とされる機能の数や規模感を柔軟に伸縮できる（時にリッチに、時にコンパクトに）
-- 進化可能（evolvable）
-    - 過去のバージョンの要件にとらわれず、柔軟にプロトコルをアップデートできる
-
-## 命名由来
-- 猫のように、小さいサイズの実装で俊敏なパフォーマンス。そして伸縮自在
-- 猫は液体 -> 水の流れ -> 小川 -> ストリーム -> ストリーム指向・コネクション指向のプロトコル
-- かわいい、親しみやすい
+This is an old repository.<br>
+Please redirect to the new repository [https://github.com/2104240031my/tspp](https://github.com/2104240031my/tspp).
